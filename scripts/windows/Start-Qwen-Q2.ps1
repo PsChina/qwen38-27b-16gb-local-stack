@@ -45,4 +45,5 @@ if ($WebPath) { $serverArgs += @('--path', $WebPath) }
 if ($CudaBin) { $env:Path = "$CudaBin;$env:Path" }
 
 Start-Process -FilePath $ServerExe -ArgumentList $serverArgs -WorkingDirectory (Split-Path $ServerExe)
-Write-Host "Q2 llama-server started on $BackendHost`:$BackendPort"
+& (Join-Path $PSScriptRoot 'Wait-QwenReady.ps1') -TargetHost '127.0.0.1' -Port ([int]$BackendPort)
+Write-Host "Q2 llama-server is ready on $BackendHost`:$BackendPort"

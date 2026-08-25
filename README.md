@@ -15,7 +15,7 @@ The client/agent limit is deliberately independent of the llama-server limit. Th
 
 - `profiles/q2/llama-server.args.example`: Q2 server arguments.
 - `profiles/q3/llama-server.args.example`: Q3 server arguments.
-- `scripts/windows/`: two Windows launch entries plus a stop entry, driven by a local ignored config.
+- `scripts/windows/`: two Windows launch entries, a readiness probe, a stop entry, and a single-instance server watchdog, driven by a local ignored config.
 - `scripts/macos/`: optional SSH wrappers for launching Q2 or Q3 remotely from a Mac desktop.
 - `src/context_governor.py`: provider-independent rendered-prompt context guard.
 - `tests/`: local unit tests for the governor policy; no Qwen connection is required.
@@ -48,6 +48,8 @@ The profiles bind the llama-server backend to port `8080`. Existing compatibilit
 ## Important operational notes
 
 - Q2 and Q3 must not be started simultaneously.
+- The watchdog waits for `/health` after launching the server; a model that is still loading is not treated as a reason to start another server.
+- `Stop-Qwen.ps1` waits for the old process to exit before a new profile starts.
 - The executable path is configurable; no particular CUDA build directory is assumed.
 - `--parallel 1` is intentional for a single-user long-context workload.
 - The server arguments keep flash attention, Q4 KV cache, MTP draft settings, Jinja templates, metrics, and verbose logging explicit.
