@@ -1,0 +1,19 @@
+--model ${QWEN_MODEL_DIR}/Qwen3.8-27B-UD-Q3_K_XL.gguf
+--host 0.0.0.0
+--port 8080
+--alias Qwen3.8-27B-Q3
+--ctx-size 92160
+--parallel 1
+--n-gpu-layers 999
+--flash-attn on
+--cache-type-k q4_0
+--cache-type-v q4_0
+--batch-size 1024
+--ubatch-size 256
+--spec-type draft-mtp
+--spec-draft-n-max 3
+--spec-draft-p-min 0
+--no-mmproj
+--jinja
+--metrics
+--verbose

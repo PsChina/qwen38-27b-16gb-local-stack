@@ -1,0 +1,28 @@
+# Local machine configuration and credentials
+*.local.*
+.env
+.env.*
+secrets/
+local/
+
+# Models and runtime output
+*.gguf
+*.gguf.part
+*.log
+logs/
+*.jsonl
+*.pid
+
+# OS/editor/runtime files
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Source snapshots and private investigation artifacts
+work/
+attachments/
+captures/
