@@ -1,0 +1,62 @@
+{
+  "llm-pi-ai": {
+    "providers": {
+      "qwen38": {
+        "apiKeyEnv": "QWEN38_API_KEY",
+        "displayName": "Qwen3.8-27B Local",
+        "api": "openai-completions",
+        "baseURL": "http://qwen-host.example:8098/v1",
+        "compat": {
+          "supportsDeveloperRole": false,
+          "maxTokensField": "max_tokens",
+          "supportsReasoningEffort": true,
+          "thinkingFormat": "openai",
+          "supportsStrictMode": false
+        },
+        "reasoning": "xhigh",
+        "transport": "sse",
+        "timeoutMs": 600000,
+        "streamIdleTimeoutMs": 600000,
+        "models": [
+          {
+            "id": "Qwen3.8-27B-Q3",
+            "name": "Qwen3.8 27B Q3",
+            "contextWindow": 87063,
+            "maxTokens": 8192,
+            "input": ["text"],
+            "reasoningEfforts": {
+              "off": "none",
+              "minimal": "minimal",
+              "low": "low",
+              "medium": "medium",
+              "high": "high",
+              "xhigh": "extra",
+              "max": "ultra"
+            }
+          },
+          {
+            "id": "Qwen3.8-27B-Q2",
+            "name": "Qwen3.8 27B Q2",
+            "contextWindow": 144000,
+            "maxTokens": 8192,
+            "input": ["text"],
+            "reasoningEfforts": {
+              "off": "none",
+              "minimal": "minimal",
+              "low": "low",
+              "medium": "medium",
+              "high": "high",
+              "xhigh": "extra",
+              "max": "ultra"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agent-default-model": {
+    "provider": "qwen38",
+    "model": "Qwen3.8-27B-Q3",
+    "reasoningEffort": "max"
+  }
+}

@@ -29,3 +29,54 @@ min(CONTEXT_HARD_LIMIT,
 ```
 
 The agent/client limit is configured outside the server launcher. For Q2, keep the client-side target at `144000` rather than raising it to the server's `182000` capacity.
+
+## DeepSeek Harness (DSH / pi-ai) client
+
+The llama-server backend binds port `8080`. A compatibility proxy (for example an LM Studio-style layer or the local proxy) exposes the OpenAI-compatible surface on a client port such as `8098`. DSH talks to that client port, never directly to the llama-server backend.
+
+Ready-to-copy provider examples:
+
+- `configs/dsh/qwen38.provider.example.json` (machine-readable settings fragment)
+- `configs/dsh/qwen38.provider.example.yaml` (annotated settings fragment)
+
+Request flow:
+
+```text
+DSH / pi-ai client
+  -> POST http://qwen-host.example:8098/v1/chat/completions   (replace host privately; openai-completions, SSE)
+  -> compatibility proxy (client port 8098)
+  -> llama-server backend (port 8080, Qwen3.8-27B-Q2/Q3)
+```
+
+Provider contract used by the examples:
+
+| Setting | Value | Meaning |
+| --- | --- | --- |
+| `llm-pi-ai.providers` | `qwen38` | Provider route name (must stay `qwen38`) |
+| `api` | `openai-completions` | Wire protocol |
+| `baseURL` | `http://qwen-host.example:8098/v1` | Replace the host privately; do not append `/chat/completions` |
+| `transport` | `sse` | Stream responses |
+| `compat.supportsDeveloperRole` | `false` | llama.cpp OpenAI layer has no developer role |
+| `compat.maxTokensField` | `max_tokens` | Output cap request field |
+| `compat.supportsReasoningEffort` | `true` | Reasoning effort is forwarded |
+| `compat.thinkingFormat` | `openai` | OpenAI-style reasoning field |
+
+Models:
+
+| Model id (`--alias`) | `contextWindow` | `maxTokens` | Default thinking |
+| --- | ---: | ---: | --- |
+| `Qwen3.8-27B-Q3` | `87063` | `8192` | `max` |
+| `Qwen3.8-27B-Q2` | `144000` | `8192` | `low` |
+
+Thinking levels accepted by DSH / pi-ai are declared under each model's `reasoningEfforts`: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. The checked-in map preserves the existing proxy vocabulary: `off → none`, `minimal → minimal`, `xhigh → extra`, and `max → ultra`. The default provider model is `Qwen3.8-27B-Q3` with `max`.
+
+API key: the examples reference `QWEN38_API_KEY` through DSH's `apiKeyEnv`. Store the actual value in DSH's managed credential file (or enter it once in the DSH Models page). The local compatibility layer has no authentication, so the dummy value `local` is sufficient:
+
+```yaml
+# ~/.dsh/.credentials.yaml
+version: 1
+refs:
+  QWEN38_API_KEY: local
+```
+
+Never write a real API key into a checked-in config. The credentials file is user-local and should remain mode `0600`. The context window values above are client-side caps: `87063` is the Q3 hard gate and `144000` is the Q2 client/agent target. The governor still clamps `max_tokens` per request, so raising the client `maxTokens` does not bypass the backend safety reserve.

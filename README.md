@@ -13,6 +13,10 @@ The client/agent limit is deliberately independent of the llama-server limit. Th
 
 ## What is included
 
+- `configs/q2.env.example`: Q2 launcher environment template.
+- `configs/q3.env.example`: Q3 launcher environment template.
+- `configs/dsh/`: DeepSeek Harness (DSH / pi-ai) provider examples for the `qwen38` route.
+- `scripts/macos/`: sanitized desktop launchers for remote Q2/Q3 start and stop.
 - `profiles/q2/llama-server.args.example`: Q2 server arguments.
 - `profiles/q3/llama-server.args.example`: Q3 server arguments.
 - `scripts/windows/`: two Windows launch entries, a readiness probe, a stop entry, and a single-instance server watchdog, driven by a local ignored config.
@@ -44,6 +48,30 @@ Copy `scripts/windows/config.local.ps1.example` to `config.local.ps1` and fill i
 5. Stop the active server with `scripts/windows/Stop-Qwen.ps1` before switching profiles.
 
 The profiles bind the llama-server backend to port `8080`. Existing compatibility layers can continue to expose their own client ports, such as `8098` or `8100`; this repository does not hard-code proxy credentials or remote addresses.
+
+## DeepSeek Harness (DSH) integration
+
+`configs/dsh/qwen38.provider.example.json` (and the annotated `.yaml` twin) is a ready-to-copy DeepSeek Harness / pi-ai settings fragment pointing at the local Qwen 3.8 stack:
+
+- Provider route: `llm-pi-ai.providers.qwen38`
+- API: `openai-completions`, transport `sse`
+- `baseURL`: `http://qwen-host.example:8098/v1` (replace the host in a private copy; do not append `/chat/completions`)
+- Models: `Qwen3.8-27B-Q3` (`contextWindow` 87063) and `Qwen3.8-27B-Q2` (`contextWindow` 144000), both `maxTokens` 8192
+- Thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; default model `Qwen3.8-27B-Q3` with `max`
+- Compatibility: `compat.supportsDeveloperRole=false`, `compat.maxTokensField=max_tokens`, `compat.supportsReasoningEffort=true`, `compat.thinkingFormat=openai`
+
+Merge the file into `~/.dsh/settings.yaml`; it uses the DSH-native `apiKeyEnv` field. The actual local key is stored separately in DSH's credential store:
+
+```yaml
+# ~/.dsh/.credentials.yaml
+version: 1
+refs:
+  QWEN38_API_KEY: local
+```
+
+`QWEN38_API_KEY` is the only key reference used; `local` is the dummy value for the no-auth local endpoint. The DSH Models page can also write this credential. Never commit a real key. The `8098` client port is served by a compatibility proxy; the llama-server backend itself stays on `8080`. See `docs/integration.md` for the full contract.
+
+The macOS launchers are sanitized templates of the desktop commands. They read the SSH password from the macOS Keychain and require the real remote host, user, and Windows script path only in a private copy. See `scripts/macos/README.md`.
 
 ## Important operational notes
 

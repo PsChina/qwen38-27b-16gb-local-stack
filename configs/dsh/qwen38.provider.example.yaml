@@ -1,0 +1,57 @@
+# DeepSeek Harness (DSH / pi-ai) settings for the local Qwen 3.8 stack.
+# This is the annotated equivalent of qwen38.provider.example.json.
+# Copy/merge this document into ~/.dsh/settings.yaml.
+
+llm-pi-ai:
+  providers:
+    qwen38:
+      apiKeyEnv: QWEN38_API_KEY        # env var name; do not put a secret here
+      displayName: Qwen3.8-27B Local
+      api: openai-completions
+      baseURL: http://qwen-host.example:8098/v1 # replace host privately; no /chat/completions
+
+      compat:
+        supportsDeveloperRole: false
+        maxTokensField: max_tokens
+        supportsReasoningEffort: true
+        thinkingFormat: openai
+        supportsStrictMode: false
+
+      reasoning: xhigh                  # provider default; use max as the selector alias
+      transport: sse
+      timeoutMs: 600000
+      streamIdleTimeoutMs: 600000
+
+      models:
+        - id: Qwen3.8-27B-Q3             # must match llama-server --alias
+          name: Qwen3.8 27B Q3
+          contextWindow: 87063
+          maxTokens: 8192
+          input: [text]
+          reasoningEfforts:
+            "off": none
+            minimal: minimal
+            low: low
+            medium: medium
+            high: high
+            xhigh: extra
+            max: ultra
+
+        - id: Qwen3.8-27B-Q2
+          name: Qwen3.8 27B Q2
+          contextWindow: 144000
+          maxTokens: 8192
+          input: [text]
+          reasoningEfforts:
+            "off": none
+            minimal: minimal
+            low: low
+            medium: medium
+            high: high
+            xhigh: extra
+            max: ultra
+
+agent-default-model:
+  provider: qwen38
+  model: Qwen3.8-27B-Q3
+  reasoningEffort: max
