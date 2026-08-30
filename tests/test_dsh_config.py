@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 JSON_EXAMPLE = ROOT / "configs" / "dsh" / "qwen38.provider.example.json"
 YAML_EXAMPLE = ROOT / "configs" / "dsh" / "qwen38.provider.example.yaml"
+INTEGRATION_DOC = ROOT / "docs" / "integration.md"
 
 EXPECTED_THINKING_LEVELS = [
     "off", "minimal", "low", "medium", "high", "xhigh", "max",
@@ -95,6 +96,13 @@ class DshConfigTests(unittest.TestCase):
         )
         self.assertNotIn("/chat/completions", base_url_line)
         self.assertNotIn("sk-", text)
+
+    def test_integration_documents_compaction_reasoning_contract(self):
+        text = INTEGRATION_DOC.read_text(encoding="utf-8")
+        self.assertIn("X-DSH-Purpose: compaction", text)
+        self.assertIn("reasoning_effort", text)
+        self.assertIn("none", text)
+        self.assertIn("disabled-thinking", text)
 
     def test_examples_are_sanitized(self):
         for path in (JSON_EXAMPLE, YAML_EXAMPLE):

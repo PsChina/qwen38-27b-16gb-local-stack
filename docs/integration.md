@@ -48,6 +48,8 @@ DSH / pi-ai client
   -> llama-server backend (port 8080, Qwen3.8-27B-Q2/Q3)
 ```
 
+For `dsh-compaction-basic` auxiliary summaries, DSH / pi-ai sends `X-DSH-Purpose: compaction`. A compatible proxy preserves an explicit `reasoning_effort` from the request; when that field is absent for this purpose, it must use the `none` budget rather than the provider's default reasoning level. It should also interpret an explicit disabled-thinking marker as `none` so `off` cannot fall back to `medium`.
+
 Provider contract used by the examples:
 
 | Setting | Value | Meaning |
