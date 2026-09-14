@@ -56,6 +56,7 @@ class DshConfigTests(unittest.TestCase):
         self.assertEqual(models["Qwen3.8-27B-Q2"]["contextWindow"], 144000)
         for model in models.values():
             self.assertEqual(model["maxTokens"], 8192)
+            self.assertEqual(model["input"], ["text", "image"])
 
     def test_default_model_and_thinking_level(self):
         config = json.loads(JSON_EXAMPLE.read_text(encoding="utf-8"))

@@ -25,6 +25,7 @@ fi
 
 echo "Starting Qwen Q3 on ${REMOTE_USER}@${REMOTE_HOST}"
 echo "The SSH password is read from Keychain service: ${KEYCHAIN_SERVICE}"
+echo "Vision is enabled with the CPU-only mmproj projector; restart waits for active requests to drain."
 echo "Keep this Terminal window open while the service is running."
 
 expect "$PASSWORD" "$REMOTE_USER" "$REMOTE_HOST" "$REMOTE_SCRIPT" "$REMOTE_MODE" <<'EXPECT_SCRIPT'

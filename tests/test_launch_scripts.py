@@ -14,12 +14,24 @@ class LaunchScriptTests(unittest.TestCase):
             content = self.read(Path("scripts/windows") / name)
             self.assertIn("Wait-QwenReady.ps1", content)
             self.assertIn("-TargetHost", content)
+            self.assertIn("Wait-QwenIdle.ps1", content)
+            self.assertIn("--mmproj", content)
+            self.assertIn("--no-mmproj-offload", content)
+            self.assertIn("-RequireVision", content)
         waiter = self.read("scripts/windows/Wait-QwenReady.ps1")
         self.assertIn("TimeoutSeconds", waiter)
+        self.assertIn("RequireVision", waiter)
+
+    def test_idle_waiter_drains_active_slots(self):
+        content = self.read("scripts/windows/Wait-QwenIdle.ps1")
+        self.assertIn("/slots", content)
+        self.assertIn("is_processing", content)
+        self.assertIn("did not become idle", content)
 
     def test_stop_waits_for_process_exit(self):
         content = self.read("scripts/windows/Stop-Qwen.ps1")
         self.assertIn("Get-Process -Name 'llama-server'", content)
+        self.assertIn("Wait-QwenIdle.ps1", content)
         self.assertIn("did not exit within", content)
 
     def test_watchdog_has_single_flight_guards(self):
@@ -27,7 +39,11 @@ class LaunchScriptTests(unittest.TestCase):
         self.assertIn("Global\\Qwen38ServerWatchdog", content)
         self.assertIn("Get-QwenServerProcess", content)
         self.assertIn("Wait-QwenReady.ps1", content)
+        self.assertIn("Wait-QwenIdle.ps1", content)
         self.assertIn("Test-BackendReady", content)
+        self.assertIn("vision", content)
+        self.assertIn("--mmproj", content)
+        self.assertIn("--no-mmproj-offload", content)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,17 @@ min(CONTEXT_HARD_LIMIT,
 
 The agent/client limit is configured outside the server launcher. For Q2, keep the client-side target at `144000` rather than raising it to the server's `182000` capacity.
 
+## Vision path and restart safety
+
+The Q2 and Q3 launchers load `mmproj-Qwen3.8-27B-BF16.gguf` with
+`--no-mmproj-offload`, keeping the vision projector on CPU while the language
+model remains on the GPU. The readiness gate checks `/health` and then requires
+`/props` to report `modalities.vision=true`; a healthy text-only process is not
+accepted as ready. The watcher and stop script poll `/slots` and wait for active
+requests to finish before replacing a process. This makes the Mac Desktop
+`.command` → SSH → `Keep-Qwen-SSH.ps1 -Mode` chain safe to use for the next
+restart without interrupting the request currently in flight.
+
 ## DeepSeek Harness (DSH / pi-ai) client
 
 The llama-server backend binds port `8080`. A compatibility proxy (for example an LM Studio-style layer or the local proxy) exposes the OpenAI-compatible surface on a client port such as `8098`. DSH talks to that client port, never directly to the llama-server backend.
@@ -69,6 +80,9 @@ Models:
 | --- | ---: | ---: | --- |
 | `Qwen3.8-27B-Q3` | `87063` | `8192` | `max` |
 | `Qwen3.8-27B-Q2` | `144000` | `8192` | `low` |
+
+Both model entries advertise `input: [text, image]`; the proxy must preserve
+the image parts when translating requests to llama.cpp.
 
 Thinking levels accepted by DSH / pi-ai are declared under each model's `reasoningEfforts`: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. The checked-in map preserves the existing proxy vocabulary: `off → none`, `minimal → minimal`, `xhigh → extra`, and `max → ultra`. The default provider model is `Qwen3.8-27B-Q3` with `max`.
 

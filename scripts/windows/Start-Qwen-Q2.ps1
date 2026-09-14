@@ -13,12 +13,18 @@ $model = Join-Path $ModelDir 'Qwen3.8-27B-UD-Q2_K_XL.gguf'
 if (-not $SkipModelCheck -and -not (Test-Path -LiteralPath $model)) {
     throw "Q2 model not found: $model"
 }
+$mmproj = if ($MmprojPath) { $MmprojPath } else { Join-Path $ModelDir 'mmproj-Qwen3.8-27B-BF16.gguf' }
+if (-not (Test-Path -LiteralPath $mmproj)) {
+    throw "Qwen3.8 vision projector not found: $mmproj"
+}
 
+& (Join-Path $PSScriptRoot 'Wait-QwenIdle.ps1') -TargetHost '127.0.0.1' -Port ([int]$BackendPort)
 & (Join-Path $PSScriptRoot 'Stop-Qwen.ps1')
 
 $env:LLAMA_BACKEND_CONTEXT_TOKENS = '182000'
 $env:CONTEXT_HARD_LIMIT = '178000'
 $env:LLAMA_CONTEXT_SAFETY_TOKENS = '4096'
+$env:MTMD_BACKEND_DEVICE = 'none'
 
 $serverArgs = @(
     '--model', $model,
@@ -36,7 +42,8 @@ $serverArgs = @(
     '--spec-type', 'draft-mtp',
     '--spec-draft-n-max', '3',
     '--spec-draft-p-min', '0',
-    '--no-mmproj',
+    '--mmproj', $mmproj,
+    '--no-mmproj-offload',
     '--jinja',
     '--metrics',
     '--verbose'
@@ -45,5 +52,5 @@ if ($WebPath) { $serverArgs += @('--path', $WebPath) }
 if ($CudaBin) { $env:Path = "$CudaBin;$env:Path" }
 
 Start-Process -FilePath $ServerExe -ArgumentList $serverArgs -WorkingDirectory (Split-Path $ServerExe)
-& (Join-Path $PSScriptRoot 'Wait-QwenReady.ps1') -TargetHost '127.0.0.1' -Port ([int]$BackendPort)
+& (Join-Path $PSScriptRoot 'Wait-QwenReady.ps1') -TargetHost '127.0.0.1' -Port ([int]$BackendPort) -RequireVision
 Write-Host "Q2 llama-server is ready on $BackendHost`:$BackendPort"

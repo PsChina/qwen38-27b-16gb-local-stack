@@ -26,6 +26,7 @@ $profileSettings = @{
 }
 $selected = $profileSettings[$Profile]
 $model = Join-Path $ModelDir $selected.Model
+$mmproj = if ($MmprojPath) { $MmprojPath } else { Join-Path $ModelDir 'mmproj-Qwen3.8-27B-BF16.gguf' }
 $serverArgs = @(
     '--model', $model,
     '--host', $BackendHost,
@@ -42,13 +43,15 @@ $serverArgs = @(
     '--spec-type', 'draft-mtp',
     '--spec-draft-n-max', '3',
     '--spec-draft-p-min', '0',
-    '--no-mmproj',
+    '--mmproj', $mmproj,
+    '--no-mmproj-offload',
     '--jinja',
     '--metrics',
     '--verbose'
 )
 if ($WebPath) { $serverArgs += @('--path', $WebPath) }
 if ($CudaBin) { $env:Path = "$CudaBin;$env:Path" }
+$env:MTMD_BACKEND_DEVICE = 'none'
 
 $env:LLAMA_BACKEND_CONTEXT_TOKENS = [string]$selected.Context
 $env:CONTEXT_HARD_LIMIT = [string]$selected.HardLimit
@@ -63,7 +66,9 @@ if (-not $mutex.WaitOne(0)) {
 function Test-BackendReady {
     try {
         $response = Invoke-WebRequest -Uri "http://127.0.0.1:$BackendPort/health" -UseBasicParsing -TimeoutSec 5
-        return $response.StatusCode -eq 200
+        if ($response.StatusCode -ne 200) { return $false }
+        $props = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/props" -TimeoutSec 5
+        return $props.modalities.vision -eq $true
     } catch {
         return $false
     }
@@ -76,10 +81,19 @@ function Get-QwenServerProcess {
 function Start-QwenServerOnce {
     $existing = Get-QwenServerProcess
     if ($existing) {
-        Write-Host "llama-server already exists (PID $($existing.Id)); waiting for readiness."
-        $waiter = Join-Path $PSScriptRoot 'Wait-QwenReady.ps1'
-        & $waiter -TargetHost '127.0.0.1' -Port ([int]$BackendPort) -TimeoutSeconds 900
-        return
+        if (Test-BackendReady) {
+            Write-Host "Vision-enabled llama-server already exists (PID $($existing.Id)); waiting for readiness."
+            return
+        }
+        Write-Host "Existing llama-server is not vision-enabled; waiting for it to become idle before replacement."
+        & (Join-Path $PSScriptRoot 'Wait-QwenIdle.ps1') -TargetHost '127.0.0.1' -Port ([int]$BackendPort)
+        & (Join-Path $PSScriptRoot 'Stop-Qwen.ps1')
+    }
+
+    if (-not (Test-Path -LiteralPath $mmproj)) { throw "Qwen3.8 vision projector not found: $mmproj" }
+
+    if ($existing) {
+        Write-Host "Replaced the previous llama-server process with the vision-enabled profile."
     }
 
     if (-not (Test-Path -LiteralPath $ServerExe)) { throw "llama-server not found: $ServerExe" }
@@ -89,7 +103,7 @@ function Start-QwenServerOnce {
     Write-Host "Started $Profile llama-server; waiting for /health."
 
     $waiter = Join-Path $PSScriptRoot 'Wait-QwenReady.ps1'
-    & $waiter -TargetHost '127.0.0.1' -Port ([int]$BackendPort) -TimeoutSeconds 900
+    & $waiter -TargetHost '127.0.0.1' -Port ([int]$BackendPort) -TimeoutSeconds 900 -RequireVision
 }
 
 try {

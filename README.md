@@ -37,7 +37,7 @@ Copy `scripts/windows/config.local.ps1.example` to `config.local.ps1` and fill i
 
 ## Quick start
 
-1. Install a compatible `llama-server` build and place the Q2/Q3 GGUF files locally.
+1. Install a compatible `llama-server` build and place the Q2/Q3 GGUF files and the matching `mmproj-Qwen3.8-27B-BF16.gguf` projector locally.
 2. Copy `scripts/windows/config.local.ps1.example` to `scripts/windows/config.local.ps1`.
 3. Set the model directory and server executable path in the ignored local file.
 4. Run exactly one of:
@@ -45,9 +45,26 @@ Copy `scripts/windows/config.local.ps1.example` to `config.local.ps1` and fill i
    - `scripts/windows/Start-Qwen-Q3.ps1`
    - `scripts/windows/Start-Qwen-Q2.ps1`
 
-5. Stop the active server with `scripts/windows/Stop-Qwen.ps1` before switching profiles.
+5. Stop the active server with `scripts/windows/Stop-Qwen.ps1` before switching profiles. The stop path drains active slots first.
 
 The profiles bind the llama-server backend to port `8080`. Existing compatibility layers can continue to expose their own client ports, such as `8098` or `8100`; this repository does not hard-code proxy credentials or remote addresses.
+
+## Vision and the Mac desktop self-start chain
+
+Both profiles load the Qwen3.8 multimodal projector with `--mmproj` and
+`--no-mmproj-offload`. The projector is kept on CPU so enabling image input
+does not claim additional GPU memory; the model layers and KV cache keep the
+existing GPU placement. `Wait-QwenReady.ps1 -RequireVision` checks both
+`/health` and `/props` and refuses to report a text-only server as ready.
+
+The intended production path is the Mac Desktop `.command` launcher, then SSH,
+then the remote `Keep-Qwen-SSH.ps1 -Mode Q2|Q3` script. Keep that remote copy
+aligned with the `scripts/windows/` files here. The Mac launcher remains attached
+to the SSH session so the remote watchdog can own the service lifecycle; a
+restart waits for `/slots` to become idle before replacing a text-only process.
+Do not switch profiles while a request is active. If the projector cannot fit
+in the available host memory, use the smaller Q8 projector and reduce GPU
+layers or context; do not silently fall back to text-only mode.
 
 ## DeepSeek Harness (DSH) integration
 
@@ -56,7 +73,7 @@ The profiles bind the llama-server backend to port `8080`. Existing compatibilit
 - Provider route: `llm-pi-ai.providers.qwen38`
 - API: `openai-completions`, transport `sse`
 - `baseURL`: `http://qwen-host.example:8098/v1` (replace the host in a private copy; do not append `/chat/completions`)
-- Models: `Qwen3.8-27B-Q3` (`contextWindow` 87063) and `Qwen3.8-27B-Q2` (`contextWindow` 144000), both `maxTokens` 8192
+- Models: `Qwen3.8-27B-Q3` (`contextWindow` 87063) and `Qwen3.8-27B-Q2` (`contextWindow` 144000), both `maxTokens` 8192 and `input: [text, image]`
 - Thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; default model `Qwen3.8-27B-Q3` with `max`
 - Compatibility: `compat.supportsDeveloperRole=false`, `compat.maxTokensField=max_tokens`, `compat.supportsReasoningEffort=true`, `compat.thinkingFormat=openai`
 
@@ -76,8 +93,8 @@ The macOS launchers are sanitized templates of the desktop commands. They read t
 ## Important operational notes
 
 - Q2 and Q3 must not be started simultaneously.
-- The watchdog waits for `/health` after launching the server; a model that is still loading is not treated as a reason to start another server.
-- `Stop-Qwen.ps1` waits for the old process to exit before a new profile starts.
+- The watchdog waits for `/health` and vision-enabled `/props` after launching the server; a model that is still loading is not treated as a reason to start another server.
+- `Stop-Qwen.ps1` waits for active `/slots` to drain and then waits for the old process to exit before a new profile starts.
 - The executable path is configurable; no particular CUDA build directory is assumed.
 - `--parallel 1` is intentional for a single-user long-context workload.
 - The server arguments keep flash attention, Q4 KV cache, MTP draft settings, Jinja templates, metrics, and verbose logging explicit.

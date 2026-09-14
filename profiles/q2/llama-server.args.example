@@ -13,7 +13,8 @@
 --spec-type draft-mtp
 --spec-draft-n-max 3
 --spec-draft-p-min 0
---no-mmproj
+--mmproj ${QWEN_MODEL_DIR}/mmproj-Qwen3.8-27B-BF16.gguf
+--no-mmproj-offload
 --jinja
 --metrics
 --verbose

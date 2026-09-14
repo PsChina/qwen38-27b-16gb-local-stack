@@ -1,9 +1,16 @@
 param(
-    [ValidateRange(1, 120)]
-    [int]$WaitSeconds = 30
+    [ValidateRange(1, 3600)]
+    [int]$WaitSeconds = 900,
+    [string]$TargetHost = '127.0.0.1',
+    [ValidateRange(1, 65535)]
+    [int]$Port = 8080
 )
 
-$ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Stop'
+
+if (Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue) {
+    & (Join-Path $PSScriptRoot 'Wait-QwenIdle.ps1') -TargetHost $TargetHost -Port $Port -TimeoutSeconds $WaitSeconds
+}
 
 Get-CimInstance Win32_Process |
     Where-Object { $_.Name -ieq 'llama-server.exe' } |

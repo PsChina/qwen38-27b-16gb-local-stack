@@ -23,6 +23,7 @@ if [[ -z "$PASSWORD" ]]; then
 fi
 
 echo "Stopping Qwen services on ${REMOTE_USER}@${REMOTE_HOST}"
+echo "The remote stop script drains active requests before terminating services."
 
 expect "$PASSWORD" "$REMOTE_USER" "$REMOTE_HOST" "$REMOTE_SCRIPT" <<'EXPECT_SCRIPT'
 set timeout 30
