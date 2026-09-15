@@ -32,7 +32,7 @@ set remote_user [lindex $argv 1]
 set remote_host [lindex $argv 2]
 set remote_script [lindex $argv 3]
 
-spawn ssh -tt -o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=accept-new "$remote_user@$remote_host" "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"$remote_script\""
+spawn ssh -tt -o ConnectTimeout=30 -o ConnectionAttempts=3 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o StrictHostKeyChecking=accept-new "$remote_user@$remote_host" "powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File \"$remote_script\""
 expect {
   -re "(?i)are you sure.*yes/no" { send -- "yes\r"; exp_continue }
   -re "(?i)password:" { send -- "$password\r"; exp_continue }

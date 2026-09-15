@@ -18,6 +18,17 @@ if (-not (Test-Path -LiteralPath $mmproj)) {
     throw "Qwen3.8 vision projector not found: $mmproj"
 }
 
+try {
+    $health = Invoke-WebRequest -Uri "http://127.0.0.1:$BackendPort/health" -UseBasicParsing -TimeoutSec 5
+    $props = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/props" -TimeoutSec 5
+    if ($health.StatusCode -eq 200 -and $props.modalities.vision -eq $true -and $props.model_alias -eq 'Qwen3.8-27B-Q2') {
+        Write-Host "Q2 llama-server is already vision-ready on $BackendHost`:$BackendPort"
+        exit 0
+    }
+} catch {
+    # A stopped or still-loading server is handled by the idle wait and restart below.
+}
+
 & (Join-Path $PSScriptRoot 'Wait-QwenIdle.ps1') -TargetHost '127.0.0.1' -Port ([int]$BackendPort)
 & (Join-Path $PSScriptRoot 'Stop-Qwen.ps1')
 

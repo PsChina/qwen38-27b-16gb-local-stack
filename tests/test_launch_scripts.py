@@ -18,6 +18,7 @@ class LaunchScriptTests(unittest.TestCase):
             self.assertIn("--mmproj", content)
             self.assertIn("--no-mmproj-offload", content)
             self.assertIn("-RequireVision", content)
+            self.assertIn("already vision-ready", content)
         waiter = self.read("scripts/windows/Wait-QwenReady.ps1")
         self.assertIn("TimeoutSeconds", waiter)
         self.assertIn("RequireVision", waiter)
@@ -33,6 +34,12 @@ class LaunchScriptTests(unittest.TestCase):
         self.assertIn("Get-Process -Name 'llama-server'", content)
         self.assertIn("Wait-QwenIdle.ps1", content)
         self.assertIn("did not exit within", content)
+
+    def test_macos_launchers_retry_ssh_banner_failures(self):
+        for name in ("Start-Qwen-Q2.command", "Start-Qwen-Q3.command", "Stop-Qwen.command"):
+            content = self.read(Path("scripts/macos") / name)
+            self.assertIn("ConnectTimeout=30", content)
+            self.assertIn("ConnectionAttempts=3", content)
 
     def test_watchdog_has_single_flight_guards(self):
         content = self.read("scripts/windows/Watch-Qwen-Server.ps1")
