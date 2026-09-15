@@ -1,0 +1,9 @@
+# Copy this file to config.local.ps1 and replace the local paths.
+# config.local.ps1 is ignored by Git and must never contain credentials.
+$ModelDir = 'C:\path\to\qwen-models'
+$ServerExe = 'C:\path\to\llama-server.exe'
+$BackendHost = '0.0.0.0'
+$BackendPort = 8080
+$WebPath = ''
+$CudaBin = ''
+$MmprojPath = Join-Path $ModelDir 'mmproj-Qwen3.8-27B-BF16.gguf'

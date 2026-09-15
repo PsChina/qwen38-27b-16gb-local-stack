@@ -17,6 +17,8 @@
         "transport": "sse",
         "timeoutMs": 600000,
         "streamIdleTimeoutMs": 600000,
+        "requestImagePixelBudget": 16777216,
+        "requestImageMaxBytes": 8388608,
         "models": [
           {
             "id": "Qwen3.8-27B-Q3",

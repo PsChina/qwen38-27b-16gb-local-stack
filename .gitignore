@@ -1,5 +1,6 @@
 # Local machine configuration and credentials
 *.local.*
+!scripts/windows/config.local.ps1.example
 .env
 .env.*
 secrets/

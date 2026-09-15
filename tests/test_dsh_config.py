@@ -49,7 +49,10 @@ class DshConfigTests(unittest.TestCase):
         self.assertEqual(compat["thinkingFormat"], "openai")
 
     def test_models_and_context_windows(self):
-        models = {m["id"]: m for m in self._provider()["models"]}
+        provider = self._provider()
+        self.assertEqual(provider["requestImagePixelBudget"], 16777216)
+        self.assertEqual(provider["requestImageMaxBytes"], 8388608)
+        models = {m["id"]: m for m in provider["models"]}
         self.assertIn("Qwen3.8-27B-Q3", models)
         self.assertIn("Qwen3.8-27B-Q2", models)
         self.assertEqual(models["Qwen3.8-27B-Q3"]["contextWindow"], 87063)
