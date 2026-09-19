@@ -38,4 +38,6 @@ expect {
   -re "(?i)password:" { send -- "$password\r"; exp_continue }
   eof
 }
+catch wait result
+exit [lindex $result 3]
 EXPECT_SCRIPT
