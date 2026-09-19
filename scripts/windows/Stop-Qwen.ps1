@@ -12,9 +12,8 @@ if (Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue) {
     & (Join-Path $PSScriptRoot 'Wait-QwenIdle.ps1') -TargetHost $TargetHost -Port $Port -TimeoutSeconds $WaitSeconds
 }
 
-Get-CimInstance Win32_Process |
-    Where-Object { $_.Name -ieq 'llama-server.exe' } |
-    ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue |
+    Stop-Process -Force
 
 $deadline = (Get-Date).AddSeconds($WaitSeconds)
 while ((Get-Date) -lt $deadline) {
