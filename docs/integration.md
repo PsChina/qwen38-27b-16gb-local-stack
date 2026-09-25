@@ -17,8 +17,8 @@ The launcher sets the policy values for the selected model:
 
 | Variable | Q3 | Q2 |
 | --- | ---: | ---: |
-| `LLAMA_BACKEND_CONTEXT_TOKENS` | `92160` | `182000` |
-| `CONTEXT_HARD_LIMIT` | `87063` | `178000` |
+| `LLAMA_BACKEND_CONTEXT_TOKENS` | `92160` | `190000` |
+| `CONTEXT_HARD_LIMIT` | `87063` | `100000` |
 | `LLAMA_CONTEXT_SAFETY_TOKENS` | `4096` | `4096` |
 
 The effective limit is:
@@ -28,7 +28,9 @@ min(CONTEXT_HARD_LIMIT,
     LLAMA_BACKEND_CONTEXT_TOKENS - LLAMA_CONTEXT_SAFETY_TOKENS)
 ```
 
-The agent/client limit is configured outside the server launcher. Keep the client-side targets at `82000` for Q3 and `170000` for Q2 rather than raising them to the backend capacities.
+Q2 uses a shared 190,000-token KV pool with two slots (`--parallel 2 --kv-unified`). Set `LLAMA_BACKEND_CONTEXT_TOKENS=190000`; the governor's per-request hard limit is `100000`. The effective limit is therefore 100,000, while the pool remains shared across both slots. Two requests cannot both use 100,000 tokens simultaneously; their combined active context must stay within 190,000.
+
+The agent/client limit is configured outside the server launcher. Keep the client-side targets at `82000` for Q3 and `100000` for Q2 rather than raising them to the backend capacities.
 
 ## Vision path and restart safety
 
@@ -80,7 +82,7 @@ Models:
 | Model id (`--alias`) | `contextWindow` | `maxTokens` | Default thinking |
 | --- | ---: | ---: | --- |
 | `Qwen3.8-27B-Q3` | `82000` | `9216` | `max` |
-| `Qwen3.8-27B-Q2` | `170000` | `16384` | `low` |
+| `Qwen3.8-27B-Q2` | `100000` | `16384` | `low` |
 
 Both model entries advertise `input: [text, image]`; the proxy must preserve
 the image parts when translating requests to llama.cpp. These `maxTokens` values
@@ -89,6 +91,10 @@ active Cordis profile's `compaction-basic.config`; it caps summary output at
 `55000` for Q3 and `100000` for Q2. The context governor clamps each request to
 the generation capacity remaining after the rendered prompt and reasoning
 budget.
+
+For Q2, the `100000`-token Harness window, `16384`-token ordinary output cap,
+and `3616`-token compaction headroom yield an automatic pressure trigger at
+`80000` tokens. The separate `100000` summary cap does not set that trigger.
 
 Thinking levels accepted by DSH / pi-ai are declared under each model's `reasoningEfforts`: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. The checked-in map preserves the existing proxy vocabulary: `off → none`, `minimal → minimal`, `xhigh → extra`, and `max → ultra`. The default provider model is `Qwen3.8-27B-Q3` with `max`.
 
@@ -101,4 +107,4 @@ refs:
   QWEN38_API_KEY: local
 ```
 
-Never write a real API key into a checked-in config. The credentials file is user-local and should remain mode `0600`. The model `contextWindow` values above are client-side budgets; the proxy independently enforces prompt hard limits of `87063` for Q3 and `178000` for Q2, with a `4096`-token backend safety reserve. The governor clamps `max_tokens` per request, so neither ordinary-request caps nor compaction summary caps bypass the backend safety reserve.
+Never write a real API key into a checked-in config. The credentials file is user-local and should remain mode `0600`. The model `contextWindow` values above are client-side budgets. The proxy enforces per-request context limits of `87063` for Q3 and `100000` for Q2. Q2's 190,000-token backend pool is shared by two slots, so their combined live context cannot exceed the pool. The governor clamps `max_tokens` to the space remaining after the rendered prompt and reasoning budget.

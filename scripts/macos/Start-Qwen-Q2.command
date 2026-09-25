@@ -24,6 +24,7 @@ if [[ -z "$PASSWORD" ]]; then
 fi
 
 echo "Starting Qwen Q2 on ${REMOTE_USER}@${REMOTE_HOST}"
+echo "Q2 uses a shared 190,000-token KV pool, two slots, a 100,000-token request limit, and MTP=4."
 echo "The SSH password is read from Keychain service: ${KEYCHAIN_SERVICE}"
 echo "Vision is enabled with the CPU-only mmproj projector; restart waits for active requests to drain."
 echo "Keep this Terminal window open while the service is running."

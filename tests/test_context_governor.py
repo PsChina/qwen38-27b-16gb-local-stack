@@ -14,7 +14,7 @@ from context_governor import (  # noqa: E402
 
 
 class ContextGovernorTests(unittest.TestCase):
-    def governor(self, *, backend=182000, hard=178000, safety=4096, minimum=256):
+    def governor(self, *, backend=190000, hard=100000, safety=4096, minimum=256):
         def counter(payload, request_id):
             if payload.get("tokenizer_unavailable"):
                 raise ContextTokenizationUnavailable(
@@ -34,9 +34,9 @@ class ContextGovernorTests(unittest.TestCase):
             ),
         )
 
-    def test_q2_effective_limit_includes_safety_reserve(self):
+    def test_q2_effective_limit_uses_per_request_hard_limit(self):
         governor = self.governor()
-        self.assertEqual(governor.effective_context_limit, 177904)
+        self.assertEqual(governor.effective_context_limit, 100000)
 
     def test_prompt_is_allowed_and_output_is_clamped(self):
         prepared, decision = self.governor().prepare(
@@ -49,7 +49,7 @@ class ContextGovernorTests(unittest.TestCase):
     def test_effective_limit_is_rejected(self):
         with self.assertRaises(ContextWindowExceeded):
             self.governor().prepare(
-                {"prompt_tokens": 178000, "max_tokens": 1000, "messages": []},
+                {"prompt_tokens": 100000, "max_tokens": 1000, "messages": []},
                 request_id="limit",
             )
 
@@ -60,7 +60,7 @@ class ContextGovernorTests(unittest.TestCase):
     def test_minimum_generation_is_enforced(self):
         with self.assertRaises(ContextWindowExceeded):
             self.governor(minimum=256).prepare(
-                {"prompt_tokens": 177800, "max_tokens": 1000, "messages": []},
+                {"prompt_tokens": 99750, "max_tokens": 1000, "messages": []},
                 request_id="minimum",
             )
 
@@ -82,7 +82,7 @@ class ContextGovernorTests(unittest.TestCase):
     def test_reasoning_budget_consumes_generation_space(self):
         prepared, decision = self.governor().prepare(
             {
-                "prompt_tokens": 170000,
+                "prompt_tokens": 90000,
                 "max_tokens": 10000,
                 "reasoning_budget": 4000,
                 "messages": [],
@@ -90,8 +90,8 @@ class ContextGovernorTests(unittest.TestCase):
             request_id="reasoning",
         )
         self.assertEqual(decision.reasoning_budget, 4000)
-        self.assertEqual(decision.available_generation_tokens, 3904)
-        self.assertEqual(prepared["max_tokens"], 3904)
+        self.assertEqual(decision.available_generation_tokens, 6000)
+        self.assertEqual(prepared["max_tokens"], 6000)
 
     def test_tokenizer_failure_is_fail_closed(self):
         with self.assertRaises(ContextTokenizationUnavailable) as raised:

@@ -14,14 +14,20 @@ $profileSettings = @{
     Q2 = @{
         Model = 'Qwen3.8-27B-UD-Q2_K_XL.gguf'
         Alias = 'Qwen3.8-27B-Q2'
-        Context = 182000
-        HardLimit = 178000
+        Context = 190000
+        HardLimit = 100000
+        Parallel = 2
+        Unified = $true
+        SpecDraftNMax = 4
     }
     Q3 = @{
         Model = 'Qwen3.8-27B-UD-Q3_K_XL.gguf'
         Alias = 'Qwen3.8-27B-Q3'
         Context = 92160
         HardLimit = 87063
+        Parallel = 1
+        Unified = $false
+        SpecDraftNMax = 3
     }
 }
 $selected = $profileSettings[$Profile]
@@ -33,7 +39,7 @@ $serverArgs = @(
     '--port', $BackendPort,
     '--alias', $selected.Alias,
     '--ctx-size', $selected.Context,
-    '--parallel', '1',
+    '--parallel', [string]$selected.Parallel,
     '--n-gpu-layers', '999',
     '--flash-attn', 'on',
     '--cache-type-k', 'q4_0',
@@ -41,7 +47,7 @@ $serverArgs = @(
     '--batch-size', '1024',
     '--ubatch-size', '256',
     '--spec-type', 'draft-mtp',
-    '--spec-draft-n-max', '3',
+    '--spec-draft-n-max', [string]$selected.SpecDraftNMax,
     '--spec-draft-p-min', '0',
     '--mmproj', $mmproj,
     '--no-mmproj-offload',
@@ -49,6 +55,7 @@ $serverArgs = @(
     '--metrics',
     '--verbose'
 )
+if ($selected.Unified) { $serverArgs += '--kv-unified' }
 if ($WebPath) { $serverArgs += @('--path', $WebPath) }
 if ($CudaBin) { $env:Path = "$CudaBin;$env:Path" }
 $env:MTMD_BACKEND_DEVICE = 'none'

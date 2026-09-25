@@ -32,8 +32,8 @@ try {
 & (Join-Path $PSScriptRoot 'Wait-QwenIdle.ps1') -TargetHost '127.0.0.1' -Port ([int]$BackendPort)
 & (Join-Path $PSScriptRoot 'Stop-Qwen.ps1')
 
-$env:LLAMA_BACKEND_CONTEXT_TOKENS = '182000'
-$env:CONTEXT_HARD_LIMIT = '178000'
+$env:LLAMA_BACKEND_CONTEXT_TOKENS = '190000'
+$env:CONTEXT_HARD_LIMIT = '100000'
 $env:LLAMA_CONTEXT_SAFETY_TOKENS = '4096'
 $env:MTMD_BACKEND_DEVICE = 'none'
 
@@ -42,8 +42,9 @@ $serverArgs = @(
     '--host', $BackendHost,
     '--port', $BackendPort,
     '--alias', 'Qwen3.8-27B-Q2',
-    '--ctx-size', '182000',
-    '--parallel', '1',
+    '--ctx-size', '190000',
+    '--parallel', '2',
+    '--kv-unified',
     '--n-gpu-layers', '999',
     '--flash-attn', 'on',
     '--cache-type-k', 'q4_0',
@@ -51,7 +52,7 @@ $serverArgs = @(
     '--batch-size', '1024',
     '--ubatch-size', '256',
     '--spec-type', 'draft-mtp',
-    '--spec-draft-n-max', '3',
+    '--spec-draft-n-max', '4',
     '--spec-draft-p-min', '0',
     '--mmproj', $mmproj,
     '--no-mmproj-offload',

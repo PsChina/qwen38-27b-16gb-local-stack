@@ -21,12 +21,12 @@ raise 'models missing' unless provider['models'].length == 2
 q3 = provider['models'][0]
 q2 = provider['models'][1]
 raise 'Q3 model budget wrong' unless q3['id'] == 'Qwen3.8-27B-Q3' && q3['contextWindow'] == 82_000 && q3['maxTokens'] == 9_216
-raise 'Q2 model budget wrong' unless q2['id'] == 'Qwen3.8-27B-Q2' && q2['contextWindow'] == 170_000 && q2['maxTokens'] == 16_384
+raise 'Q2 model budget wrong' unless q2['id'] == 'Qwen3.8-27B-Q2' && q2['contextWindow'] == 100_000 && q2['maxTokens'] == 16_384
 policy_path = File.join(File.dirname(__FILE__), '..', 'configs', 'dsh', 'qwen38.compaction-policy.example.yaml')
 policies = YAML.load_file(policy_path).fetch('modelPolicies')
 q3_policy, q2_policy = policies
 raise 'Q3 summary policy wrong' unless q3_policy['model'] == q3['id'] && q3_policy['headroomTokens'] == 7_184 && q3_policy['maxTokens'] == 55_000
-raise 'Q2 summary policy wrong' unless q2_policy['model'] == q2['id'] && q2_policy['headroomTokens'] == 17_616 && q2_policy['maxTokens'] == 100_000
+raise 'Q2 summary policy wrong' unless q2_policy['model'] == q2['id'] && q2_policy['headroomTokens'] == 3_616 && q2_policy['maxTokens'] == 100_000
 expected_efforts = %w[off minimal low medium high xhigh max]
 raise 'Q3 reasoning levels wrong' unless q3['reasoningEfforts'].keys == expected_efforts
 raise 'Q2 reasoning levels wrong' unless q2['reasoningEfforts'].keys == expected_efforts

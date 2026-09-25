@@ -52,6 +52,33 @@ class LaunchScriptTests(unittest.TestCase):
         self.assertIn("--mmproj", content)
         self.assertIn("--no-mmproj-offload", content)
 
+    def test_q2_uses_shared_190k_pool_with_two_slots_and_100k_guard(self):
+        start = self.read("scripts/windows/Start-Qwen-Q2.ps1")
+        watchdog = self.read("scripts/windows/Watch-Qwen-Server.ps1")
+        args = self.read("profiles/q2/llama-server.args.example")
+        self.assertIn("LLAMA_BACKEND_CONTEXT_TOKENS = '190000'", start)
+        self.assertIn("CONTEXT_HARD_LIMIT = '100000'", start)
+        self.assertIn("'--ctx-size', '190000'", start)
+        self.assertIn("'--parallel', '2'", start)
+        self.assertIn("'--kv-unified'", start)
+        self.assertIn("'--spec-draft-n-max', '4'", start)
+        self.assertIn("Parallel = 2", watchdog)
+        self.assertIn("Context = 190000", watchdog)
+        self.assertIn("HardLimit = 100000", watchdog)
+        self.assertIn("SpecDraftNMax = 4", watchdog)
+        self.assertIn("--ctx-size 190000", args)
+        self.assertIn("--parallel 2", args)
+        self.assertIn("--kv-unified", args)
+        self.assertIn("--spec-draft-n-max 4", args)
+
+    def test_q3_launch_settings_remain_single_slot_with_three_mtp_tokens(self):
+        start = self.read("scripts/windows/Start-Qwen-Q3.ps1")
+        watchdog = self.read("scripts/windows/Watch-Qwen-Server.ps1")
+        self.assertIn("'--parallel', '1'", start)
+        self.assertIn("'--spec-draft-n-max', '3'", start)
+        self.assertIn("Parallel = 1", watchdog)
+        self.assertIn("SpecDraftNMax = 3", watchdog)
+
 
 if __name__ == "__main__":
     unittest.main()

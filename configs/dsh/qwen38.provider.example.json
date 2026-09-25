@@ -39,7 +39,7 @@
           {
             "id": "Qwen3.8-27B-Q2",
             "name": "Qwen3.8 27B Q2",
-            "contextWindow": 170000,
+            "contextWindow": 100000,
             "maxTokens": 16384,
             "input": ["text", "image"],
             "reasoningEfforts": {

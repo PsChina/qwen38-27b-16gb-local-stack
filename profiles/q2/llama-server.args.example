@@ -2,8 +2,9 @@
 --host 0.0.0.0
 --port 8080
 --alias Qwen3.8-27B-Q2
---ctx-size 182000
---parallel 1
+--ctx-size 190000
+--parallel 2
+--kv-unified
 --n-gpu-layers 999
 --flash-attn on
 --cache-type-k q4_0
@@ -11,7 +12,7 @@
 --batch-size 1024
 --ubatch-size 256
 --spec-type draft-mtp
---spec-draft-n-max 3
+--spec-draft-n-max 4
 --spec-draft-p-min 0
 --mmproj ${QWEN_MODEL_DIR}/mmproj-Qwen3.8-27B-BF16.gguf
 --no-mmproj-offload

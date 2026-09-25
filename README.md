@@ -4,12 +4,12 @@ Public, template-first launch profiles for running the Qwen3.8-27B Q2 and Q3 GGU
 
 The two profiles use the same backend port and are intended to be run one at a time:
 
-| Profile | Model | Server context | Hard gate | Effective gate after safety | Client/agent target |
+| Profile | Model | Shared server context | Slots | Per-request limit | Client/agent target |
 | --- | --- | ---: | ---: | ---: | ---: |
-| Q3 | `Qwen3.8-27B-UD-Q3_K_XL.gguf` | 92,160 | 87,063 | 87,063 | 82,000 |
-| Q2 | `Qwen3.8-27B-UD-Q2_K_XL.gguf` | 182,000 | 178,000 | 177,904 | 170,000 |
+| Q3 | `Qwen3.8-27B-UD-Q3_K_XL.gguf` | 92,160 | 1 | 87,063 | 82,000 |
+| Q2 | `Qwen3.8-27B-UD-Q2_K_XL.gguf` | 190,000 | 2 | 100,000 | 100,000 |
 
-The client/agent limit is deliberately independent of the llama-server limit. The Q2 profile leaves approximately 4K tokens between the governor and the backend capacity.
+Q2 shares its 190,000-token KV pool between two slots and caps each request at 100,000 tokens. Two requests cannot both consume 100,000 tokens at once; their combined live context must fit in the shared pool.
 
 ## What is included
 
@@ -73,7 +73,7 @@ layers or context; do not silently fall back to text-only mode.
 - Provider route: `llm-pi-ai.providers.qwen38`
 - API: `openai-completions`, transport `sse`
 - `baseURL`: `http://qwen-host.example:8098/v1` (replace the host in a private copy; do not append `/chat/completions`)
-- Models: `Qwen3.8-27B-Q3` (`contextWindow` 82000, ordinary-request `maxTokens` 9216) and `Qwen3.8-27B-Q2` (`contextWindow` 170000, ordinary-request `maxTokens` 16384), both with `input: [text, image]`
+- Models: `Qwen3.8-27B-Q3` (`contextWindow` 82000, ordinary-request `maxTokens` 9216) and `Qwen3.8-27B-Q2` (`contextWindow` 100000, ordinary-request `maxTokens` 16384), both with `input: [text, image]`
 - Thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; default model `Qwen3.8-27B-Q3` with `max`
 - Compatibility: `compat.supportsDeveloperRole=false`, `compat.maxTokensField=max_tokens`, `compat.supportsReasoningEffort=true`, `compat.thinkingFormat=openai`
 
@@ -98,8 +98,8 @@ The macOS launchers are sanitized templates of the desktop commands. They read t
 - The watchdog waits for `/health` and vision-enabled `/props` after launching the server; a model that is still loading is not treated as a reason to start another server.
 - `Stop-Qwen.ps1` waits for active `/slots` to drain and then waits for the old process to exit before a new profile starts.
 - The executable path is configurable; no particular CUDA build directory is assumed.
-- `--parallel 1` is intentional for a single-user long-context workload.
-- The server arguments keep flash attention, Q4 KV cache, MTP draft settings, Jinja templates, metrics, and verbose logging explicit.
+- Q3 uses `--parallel 1`; Q2 uses two slots over a shared 190,000-token KV pool, with a 100,000-token per-request governor limit.
+- The server arguments keep flash attention, Q4 KV cache, Jinja templates, metrics, and verbose logging explicit. Q2 uses four MTP draft tokens; Q3 remains at three.
 - The governor must count the final rendered chat-template prompt with the backend tokenizer. Character estimates are not a safe fallback.
 
 ## Tests
