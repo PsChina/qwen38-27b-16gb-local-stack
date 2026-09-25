@@ -55,10 +55,11 @@ class DshConfigTests(unittest.TestCase):
         models = {m["id"]: m for m in provider["models"]}
         self.assertIn("Qwen3.8-27B-Q3", models)
         self.assertIn("Qwen3.8-27B-Q2", models)
-        self.assertEqual(models["Qwen3.8-27B-Q3"]["contextWindow"], 87063)
-        self.assertEqual(models["Qwen3.8-27B-Q2"]["contextWindow"], 144000)
+        self.assertEqual(models["Qwen3.8-27B-Q3"]["contextWindow"], 82000)
+        self.assertEqual(models["Qwen3.8-27B-Q2"]["contextWindow"], 170000)
+        self.assertEqual(models["Qwen3.8-27B-Q3"]["maxTokens"], 9216)
+        self.assertEqual(models["Qwen3.8-27B-Q2"]["maxTokens"], 16384)
         for model in models.values():
-            self.assertEqual(model["maxTokens"], 8192)
             self.assertEqual(model["input"], ["text", "image"])
 
     def test_default_model_and_thinking_level(self):
@@ -67,6 +68,15 @@ class DshConfigTests(unittest.TestCase):
         self.assertEqual(config["agent-default-model"]["model"], "Qwen3.8-27B-Q3")
         self.assertEqual(config["agent-default-model"]["reasoningEffort"], "max")
         self.assertIn(provider["reasoning"], {"xhigh", "max"})
+
+    def test_q2_agent_context_budget_matches_provider_example(self):
+        text = (ROOT / "configs" / "q2.env.example").read_text(encoding="utf-8")
+        self.assertIn("AGENT_MAX_CONTEXT_TOKENS=170000", text)
+
+    def test_compaction_policy_keeps_summary_caps_separate(self):
+        text = (ROOT / "configs" / "dsh" / "qwen38.compaction-policy.example.yaml").read_text(encoding="utf-8")
+        self.assertIn("model: Qwen3.8-27B-Q3\n    headroomTokens: 7184\n    maxTokens: 55000", text)
+        self.assertIn("model: Qwen3.8-27B-Q2\n    headroomTokens: 17616\n    maxTokens: 100000", text)
 
     def test_thinking_levels_are_the_dsh_set(self):
         efforts = self._provider()["models"][0]["reasoningEfforts"]
@@ -90,7 +100,7 @@ class DshConfigTests(unittest.TestCase):
             self.assertIn(level, text)
         for model in ("Qwen3.8-27B-Q3", "Qwen3.8-27B-Q2"):
             self.assertIn(model, text)
-        for value in ("87063", "144000", "8192"):
+        for value in ("82000", "170000", "9216", "16384"):
             self.assertIn(value, text)
         # The requirement is that the baseUrl VALUE must not carry the chat
         # completions path; a comment may warn about it.

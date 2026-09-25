@@ -6,8 +6,8 @@ The two profiles use the same backend port and are intended to be run one at a t
 
 | Profile | Model | Server context | Hard gate | Effective gate after safety | Client/agent target |
 | --- | --- | ---: | ---: | ---: | ---: |
-| Q3 | `Qwen3.8-27B-UD-Q3_K_XL.gguf` | 92,160 | 87,063 | 87,063 | configure separately |
-| Q2 | `Qwen3.8-27B-UD-Q2_K_XL.gguf` | 182,000 | 178,000 | 177,904 | 144,000 |
+| Q3 | `Qwen3.8-27B-UD-Q3_K_XL.gguf` | 92,160 | 87,063 | 87,063 | 82,000 |
+| Q2 | `Qwen3.8-27B-UD-Q2_K_XL.gguf` | 182,000 | 178,000 | 177,904 | 170,000 |
 
 The client/agent limit is deliberately independent of the llama-server limit. The Q2 profile leaves approximately 4K tokens between the governor and the backend capacity.
 
@@ -15,7 +15,7 @@ The client/agent limit is deliberately independent of the llama-server limit. Th
 
 - `configs/q2.env.example`: Q2 launcher environment template.
 - `configs/q3.env.example`: Q3 launcher environment template.
-- `configs/dsh/`: DeepSeek Harness (DSH / pi-ai) provider examples for the `qwen38` route.
+- `configs/dsh/`: DeepSeek Harness (DSH / pi-ai) provider and compaction-policy examples for the `qwen38` route.
 - `scripts/macos/`: sanitized desktop launchers for remote Q2/Q3 start and stop.
 - `profiles/q2/llama-server.args.example`: Q2 server arguments.
 - `profiles/q3/llama-server.args.example`: Q3 server arguments.
@@ -73,9 +73,11 @@ layers or context; do not silently fall back to text-only mode.
 - Provider route: `llm-pi-ai.providers.qwen38`
 - API: `openai-completions`, transport `sse`
 - `baseURL`: `http://qwen-host.example:8098/v1` (replace the host in a private copy; do not append `/chat/completions`)
-- Models: `Qwen3.8-27B-Q3` (`contextWindow` 87063) and `Qwen3.8-27B-Q2` (`contextWindow` 144000), both `maxTokens` 8192 and `input: [text, image]`
+- Models: `Qwen3.8-27B-Q3` (`contextWindow` 82000, ordinary-request `maxTokens` 9216) and `Qwen3.8-27B-Q2` (`contextWindow` 170000, ordinary-request `maxTokens` 16384), both with `input: [text, image]`
 - Thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; default model `Qwen3.8-27B-Q3` with `max`
 - Compatibility: `compat.supportsDeveloperRole=false`, `compat.maxTokensField=max_tokens`, `compat.supportsReasoningEffort=true`, `compat.thinkingFormat=openai`
+
+The provider examples set ordinary-request caps. `configs/dsh/qwen38.compaction-policy.example.yaml` separately sets summary output caps of `55,000` for Q3 and `100,000` for Q2; merge it under the active Cordis profile's `compaction-basic.config`, not `~/.dsh/settings.yaml`. These are upper bounds, not normal-request limits; the context governor clamps each request to the generation capacity left after tokenizing its prompt and reserving reasoning tokens.
 
 Merge the file into `~/.dsh/settings.yaml`; it uses the DSH-native `apiKeyEnv` field. The actual local key is stored separately in DSH's credential store:
 

@@ -1,0 +1,10 @@
+# Cordis profile fragment: merge under the existing compaction-basic.config.
+modelPolicies:
+  - provider: qwen38
+    model: Qwen3.8-27B-Q3
+    headroomTokens: 7184
+    maxTokens: 55000
+  - provider: qwen38
+    model: Qwen3.8-27B-Q2
+    headroomTokens: 17616
+    maxTokens: 100000

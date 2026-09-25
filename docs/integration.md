@@ -28,7 +28,7 @@ min(CONTEXT_HARD_LIMIT,
     LLAMA_BACKEND_CONTEXT_TOKENS - LLAMA_CONTEXT_SAFETY_TOKENS)
 ```
 
-The agent/client limit is configured outside the server launcher. For Q2, keep the client-side target at `144000` rather than raising it to the server's `182000` capacity.
+The agent/client limit is configured outside the server launcher. Keep the client-side targets at `82000` for Q3 and `170000` for Q2 rather than raising them to the backend capacities.
 
 ## Vision path and restart safety
 
@@ -49,6 +49,7 @@ Ready-to-copy provider examples:
 
 - `configs/dsh/qwen38.provider.example.json` (machine-readable settings fragment)
 - `configs/dsh/qwen38.provider.example.yaml` (annotated settings fragment)
+- `configs/dsh/qwen38.compaction-policy.example.yaml` (Cordis `compaction-basic.config` fragment; do not merge it into `~/.dsh/settings.yaml`)
 
 Request flow:
 
@@ -78,11 +79,16 @@ Models:
 
 | Model id (`--alias`) | `contextWindow` | `maxTokens` | Default thinking |
 | --- | ---: | ---: | --- |
-| `Qwen3.8-27B-Q3` | `87063` | `8192` | `max` |
-| `Qwen3.8-27B-Q2` | `144000` | `8192` | `low` |
+| `Qwen3.8-27B-Q3` | `82000` | `9216` | `max` |
+| `Qwen3.8-27B-Q2` | `170000` | `16384` | `low` |
 
 Both model entries advertise `input: [text, image]`; the proxy must preserve
-the image parts when translating requests to llama.cpp.
+the image parts when translating requests to llama.cpp. These `maxTokens` values
+cap ordinary requests. Merge the separate compaction-policy fragment under the
+active Cordis profile's `compaction-basic.config`; it caps summary output at
+`55000` for Q3 and `100000` for Q2. The context governor clamps each request to
+the generation capacity remaining after the rendered prompt and reasoning
+budget.
 
 Thinking levels accepted by DSH / pi-ai are declared under each model's `reasoningEfforts`: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. The checked-in map preserves the existing proxy vocabulary: `off → none`, `minimal → minimal`, `xhigh → extra`, and `max → ultra`. The default provider model is `Qwen3.8-27B-Q3` with `max`.
 
@@ -95,4 +101,4 @@ refs:
   QWEN38_API_KEY: local
 ```
 
-Never write a real API key into a checked-in config. The credentials file is user-local and should remain mode `0600`. The context window values above are client-side caps: `87063` is the Q3 hard gate and `144000` is the Q2 client/agent target. The governor still clamps `max_tokens` per request, so raising the client `maxTokens` does not bypass the backend safety reserve.
+Never write a real API key into a checked-in config. The credentials file is user-local and should remain mode `0600`. The model `contextWindow` values above are client-side budgets; the proxy independently enforces prompt hard limits of `87063` for Q3 and `178000` for Q2, with a `4096`-token backend safety reserve. The governor clamps `max_tokens` per request, so neither ordinary-request caps nor compaction summary caps bypass the backend safety reserve.
