@@ -51,6 +51,13 @@ $serverArgs = @(
     '--cache-type-v', 'q4_0',
     '--batch-size', '1024',
     '--ubatch-size', '256',
+    # Official Qwen3.8 thinking-mode sampler defaults (see README.md).
+    '--temp', '1.0',
+    '--top-p', '0.95',
+    '--top-k', '20',
+    '--min-p', '0.0',
+    '--presence-penalty', '0.0',
+    '--repeat-penalty', '1.0',
     '--spec-type', 'draft-mtp',
     '--spec-draft-n-max', '4',
     '--spec-draft-p-min', '0',

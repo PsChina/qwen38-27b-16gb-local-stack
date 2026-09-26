@@ -74,10 +74,14 @@ layers or context; do not silently fall back to text-only mode.
 - API: `openai-completions`, transport `sse`
 - `baseURL`: `http://qwen-host.example:8098/v1` (replace the host in a private copy; do not append `/chat/completions`)
 - Models: `Qwen3.8-27B-Q3` (`contextWindow` 82000, ordinary-request `maxTokens` 9216) and `Qwen3.8-27B-Q2` (`contextWindow` 100000, ordinary-request `maxTokens` 16384), both with `input: [text, image]`
-- Thinking levels: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; default model `Qwen3.8-27B-Q3` with `max`
+- Qwen's native thinking levels are `low`, `medium`, and `xhigh`; the default is `xhigh`. Harness adds `off` as a disable-thinking control, sent as `none`.
 - Compatibility: `compat.supportsDeveloperRole=false`, `compat.maxTokensField=max_tokens`, `compat.supportsReasoningEffort=true`, `compat.thinkingFormat=openai`
 
-The provider examples set ordinary-request caps. `configs/dsh/qwen38.compaction-policy.example.yaml` separately sets summary output caps of `55,000` for Q3 and `100,000` for Q2; merge it under the active Cordis profile's `compaction-basic.config`, not `~/.dsh/settings.yaml`. These are upper bounds, not normal-request limits; the context governor clamps each request to the generation capacity left after tokenizing its prompt and reserving reasoning tokens.
+The `9,216` Q3 and `16,384` Q2 ordinary-request output caps apply to each generation request; they are independent of the context window and thinking effort, and automatic continuation can make another request under the same cap. `configs/dsh/qwen38.compaction-policy.example.yaml` separately sets summary output caps of `55,000` for Q3 and `100,000` for Q2; merge it under the active Cordis profile's `compaction-basic.config`, not `~/.dsh/settings.yaml`. These are upper bounds, not normal-request limits; the context governor clamps each request to the generation capacity left after tokenizing its prompt and reserving reasoning tokens.
+
+Qwen's official thinking-mode sampler remains the llama-server default: `temp=1.0`, `top_p=0.95`, `top_k=20`, `min_p=0`, `presence_penalty=0`, and `repeat_penalty=1`. The DSH provider profile sends the same thinking preset on each enabled-effort request, and switches to Qwen's separate non-thinking preset (`temp=0.7`, `top_p=0.80`, `top_k=20`, `min_p=0`, `presence_penalty=1.5`, `repeat_penalty=1`) when `off` is selected. This keeps all sampler choices request-scoped; a direct llama-server client still uses server defaults.
+
+See the [official Qwen3.8-27B model card](https://huggingface.co/Qwen/Qwen3.8-27B) for the upstream reasoning and sampling recommendations.
 
 Merge the file into `~/.dsh/settings.yaml`; it uses the DSH-native `apiKeyEnv` field. The actual local key is stored separately in DSH's credential store:
 
@@ -100,6 +104,7 @@ The macOS launchers are sanitized templates of the desktop commands. They read t
 - The executable path is configurable; no particular CUDA build directory is assumed.
 - Q3 uses `--parallel 1`; Q2 uses two slots over a shared 190,000-token KV pool, with a 100,000-token per-request governor limit.
 - The server arguments keep flash attention, Q4 KV cache, Jinja templates, metrics, and verbose logging explicit. Q2 uses four MTP draft tokens; Q3 remains at three.
+- Both start scripts and watchdog restarts explicitly set the official Qwen thinking-mode sampler values; edits take effect when the server next starts.
 - The governor must count the final rendered chat-template prompt with the backend tokenizer. Character estimates are not a safe fallback.
 
 ## Tests

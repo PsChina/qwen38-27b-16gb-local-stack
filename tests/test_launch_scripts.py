@@ -6,6 +6,15 @@ ROOT = Path(__file__).parents[1]
 
 
 class LaunchScriptTests(unittest.TestCase):
+    SAMPLER_FLAGS = (
+        ("--temp", "1.0"),
+        ("--top-p", "0.95"),
+        ("--top-k", "20"),
+        ("--min-p", "0.0"),
+        ("--presence-penalty", "0.0"),
+        ("--repeat-penalty", "1.0"),
+    )
+
     def read(self, relative):
         return (ROOT / relative).read_text(encoding="utf-8")
 
@@ -78,6 +87,25 @@ class LaunchScriptTests(unittest.TestCase):
         self.assertIn("'--spec-draft-n-max', '3'", start)
         self.assertIn("Parallel = 1", watchdog)
         self.assertIn("SpecDraftNMax = 3", watchdog)
+
+    def test_every_server_start_uses_official_qwen_thinking_sampler(self):
+        paths = (
+            "scripts/windows/Start-Qwen-Q2.ps1",
+            "scripts/windows/Start-Qwen-Q3.ps1",
+            "scripts/windows/Watch-Qwen-Server.ps1",
+            "profiles/q2/llama-server.args.example",
+            "profiles/q3/llama-server.args.example",
+        )
+        for path in paths:
+            content = self.read(path)
+            expected = (
+                (f"'{flag}', '{value}'" for flag, value in self.SAMPLER_FLAGS)
+                if path.endswith(".ps1")
+                else (f"{flag} {value}" for flag, value in self.SAMPLER_FLAGS)
+            )
+            with self.subTest(path=path):
+                for argument in expected:
+                    self.assertIn(argument, content)
 
 
 if __name__ == "__main__":

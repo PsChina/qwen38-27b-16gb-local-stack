@@ -81,8 +81,8 @@ Models:
 
 | Model id (`--alias`) | `contextWindow` | `maxTokens` | Default thinking |
 | --- | ---: | ---: | --- |
-| `Qwen3.8-27B-Q3` | `82000` | `9216` | `max` |
-| `Qwen3.8-27B-Q2` | `100000` | `16384` | `low` |
+| `Qwen3.8-27B-Q3` | `82000` | `9216` | `xhigh` |
+| `Qwen3.8-27B-Q2` | `100000` | `16384` | `xhigh` |
 
 Both model entries advertise `input: [text, image]`; the proxy must preserve
 the image parts when translating requests to llama.cpp. These `maxTokens` values
@@ -90,13 +90,25 @@ cap ordinary requests. Merge the separate compaction-policy fragment under the
 active Cordis profile's `compaction-basic.config`; it caps summary output at
 `55000` for Q3 and `100000` for Q2. The context governor clamps each request to
 the generation capacity remaining after the rendered prompt and reasoning
-budget.
+budget. `maxTokens` is a per-generation-request ceiling, not a context-window
+or reasoning-effort setting; automatic continuation may issue another request
+under the same ceiling.
 
 For Q2, the `100000`-token Harness window, `16384`-token ordinary output cap,
 and `3616`-token compaction headroom yield an automatic pressure trigger at
 `80000` tokens. The separate `100000` summary cap does not set that trigger.
 
-Thinking levels accepted by DSH / pi-ai are declared under each model's `reasoningEfforts`: `off`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. The checked-in map preserves the existing proxy vocabulary: `off → none`, `minimal → minimal`, `xhigh → extra`, and `max → ultra`. The default provider model is `Qwen3.8-27B-Q3` with `max`.
+The model card's Qwen-native thinking levels are `low`, `medium`, and `xhigh`;
+DSH exposes those unchanged and adds `off` as a disable-thinking control mapped
+to wire effort `none`. Both routes default to `xhigh`, the model card's default
+thinking effort. The llama-server launch scripts set Qwen's official
+thinking-mode sampler as the server default: `temp=1.0`, `top_p=0.95`,
+`top_k=20`, `min_p=0`, `presence_penalty=0`, `repeat_penalty=1`. The DSH profile
+sends that preset for every enabled-effort request and Qwen's separate
+non-thinking preset (`temp=0.7`, `top_p=0.80`, `top_k=20`, `min_p=0`,
+`presence_penalty=1.5`, `repeat_penalty=1`) when `off` is selected. Direct
+llama-server clients continue to use server defaults.
+See the [official Qwen3.8-27B model card](https://huggingface.co/Qwen/Qwen3.8-27B) for the upstream recommendations.
 
 API key: the examples reference `QWEN38_API_KEY` through DSH's `apiKeyEnv`. Store the actual value in DSH's managed credential file (or enter it once in the DSH Models page). The local compatibility layer has no authentication, so the dummy value `local` is sufficient:
 

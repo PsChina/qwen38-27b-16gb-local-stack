@@ -7,18 +7,32 @@ JSON_EXAMPLE = ROOT / "configs" / "dsh" / "qwen38.provider.example.json"
 YAML_EXAMPLE = ROOT / "configs" / "dsh" / "qwen38.provider.example.yaml"
 INTEGRATION_DOC = ROOT / "docs" / "integration.md"
 
-EXPECTED_THINKING_LEVELS = [
-    "off", "minimal", "low", "medium", "high", "xhigh", "max",
-]
+EXPECTED_THINKING_LEVELS = ["off", "low", "medium", "xhigh"]
 
 EXPECTED_WIRE_EFFORTS = {
     "off": "none",
-    "minimal": "minimal",
     "low": "low",
     "medium": "medium",
-    "high": "high",
-    "xhigh": "extra",
-    "max": "ultra",
+    "xhigh": "xhigh",
+}
+
+EXPECTED_SAMPLING = {
+    "thinking": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0,
+        "presence_penalty": 0,
+        "repeat_penalty": 1,
+    },
+    "off": {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 20,
+        "min_p": 0,
+        "presence_penalty": 1.5,
+        "repeat_penalty": 1,
+    },
 }
 
 
@@ -66,8 +80,8 @@ class DshConfigTests(unittest.TestCase):
         config = json.loads(JSON_EXAMPLE.read_text(encoding="utf-8"))
         provider = self._provider()
         self.assertEqual(config["agent-default-model"]["model"], "Qwen3.8-27B-Q3")
-        self.assertEqual(config["agent-default-model"]["reasoningEffort"], "max")
-        self.assertIn(provider["reasoning"], {"xhigh", "max"})
+        self.assertEqual(config["agent-default-model"]["reasoningEffort"], "xhigh")
+        self.assertEqual(provider["reasoning"], "xhigh")
 
     def test_q2_agent_context_budget_matches_provider_example(self):
         text = (ROOT / "configs" / "q2.env.example").read_text(encoding="utf-8")
@@ -82,9 +96,11 @@ class DshConfigTests(unittest.TestCase):
         self.assertIn("model: Qwen3.8-27B-Q2\n    headroomTokens: 3616\n    maxTokens: 100000", text)
 
     def test_thinking_levels_are_the_dsh_set(self):
-        efforts = self._provider()["models"][0]["reasoningEfforts"]
-        self.assertEqual(list(efforts), EXPECTED_THINKING_LEVELS)
-        self.assertEqual(efforts, EXPECTED_WIRE_EFFORTS)
+        for model in self._provider()["models"]:
+            efforts = model["reasoningEfforts"]
+            self.assertEqual(list(efforts), EXPECTED_THINKING_LEVELS)
+            self.assertEqual(efforts, EXPECTED_WIRE_EFFORTS)
+            self.assertEqual(model["sampling"], EXPECTED_SAMPLING)
 
     def test_api_key_uses_env_name_only_and_no_real_credential(self):
         provider = self._provider()
@@ -105,6 +121,9 @@ class DshConfigTests(unittest.TestCase):
             self.assertIn(model, text)
         for value in ("82000", "100000", "9216", "16384"):
             self.assertIn(value, text)
+        self.assertIn("Qwen-native thinking levels: low, medium, xhigh; Harness adds off", text)
+        self.assertIn("temperature: 0.7", text)
+        self.assertIn("presence_penalty: 1.5", text)
         # The requirement is that the baseUrl VALUE must not carry the chat
         # completions path; a comment may warn about it.
         base_url_line = next(
@@ -120,6 +139,9 @@ class DshConfigTests(unittest.TestCase):
         self.assertIn("reasoning_effort", text)
         self.assertIn("none", text)
         self.assertIn("disabled-thinking", text)
+        self.assertIn("automatic continuation may issue another request", text)
+        self.assertIn("top_p=0.95", text)
+        self.assertIn("non-thinking preset", text)
 
     def test_examples_are_sanitized(self):
         for path in (JSON_EXAMPLE, YAML_EXAMPLE):
